@@ -7,6 +7,9 @@
     <!-- Tailwind CSS CDN -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <!-- Custom CSS -->
+
+
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -14,32 +17,34 @@
             background-color: #ffffff;
             transition: background-color 0.3s ease, color 0.3s ease;
         }
-
+    
         body.light-mode {
             background-color: #ffffff;
             color: #000000;
         }
-
+    
         body.dark-mode {
             background-color: #1a202c;
             color: #e2e8f0;
         }
-
+    
         #search-container {
             margin-bottom: 3px;
             position: relative;
             display: flex;
             align-items: center;
-            width: 100%; /* Full width */
-            max-width: 1268px;
-            height: 100px;
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            flex-direction: column;
+            padding: 10px;
         }
-
+    
         #data-container {
             margin-top: 20px;
             overflow-x: auto;
         }
-
+    
         table {
             width: 100%;
             border-collapse: collapse;
@@ -47,7 +52,7 @@
             border: 1px solid #000;
             font-size: 12px;
         }
-
+    
         th, td {
             border: 1px solid #000;
             padding: 8px;
@@ -55,41 +60,39 @@
             word-wrap: break-word;
             color: inherit;
         }
-
+    
         th {
             background-color: #000;
             color: white;
         }
-
+    
         td {
             background-color: #fff;
         }
-
+    
         tr:nth-child(even) td {
             background-color: #f2f2f2;
         }
-
+    
         tr:hover td {
             background-color: #d9d9d9;
         }
-
+    
         body.dark-mode table {
             background-color: #2d3748;
             color: #e2e8f0;
         }
-
+    
         body.dark-mode th {
             background-color: #4a5568;
             color: #e2e8f0;
         }
-
+    
         body.dark-mode td {
             background-color: #2d3748;
         }
-
-        /* Custom styles for suggestions */
+    
         #suggestions {
-        
             position: absolute;
             top: 100%;
             left: 0;
@@ -97,21 +100,20 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             background-color: white;
-            box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
             z-index: 1000;
             display: none;
         }
-
+    
         #suggestions div {
             padding: 8px;
             cursor: pointer;
         }
-
+    
         #suggestions div:hover {
             background-color: #ddd;
         }
-
-        /* Custom dialog styles */
+    
         #custom-dialog {
             display: none;
             position: fixed;
@@ -121,11 +123,13 @@
             background-color: white;
             border: 1px solid #ddd;
             border-radius: 4px;
-            box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
             padding: 20px;
             z-index: 1001;
+            width: 90%;
+            max-width: 400px;
         }
-
+    
         #overlay {
             display: none;
             position: fixed;
@@ -136,14 +140,97 @@
             background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
         }
-
-        /* Custom styles for the logo */
+    
         .logo {
-            width: 200px; /* Adjust the width as needed */
+            width: 150px;
             height: auto;
-            margin-right: 20px; /* Adds space to the right of the logo */
+            margin-bottom: 10px;
         }
+    
+        button {
+            padding: 8px 16px;
+            font-size: 14px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+    
+        button:hover {
+            background-color: #0056b3;
+        }
+    
+   
+        @media screen and (max-width: 600px) {
+        body {
+            padding: 5px;
+        }
+
+        #search-container {
+            flex-direction: column;
+            padding: 5px;
+            background-color: transparent;
+            border: none;
+            box-shadow: none;
+        }
+
+        #data-container {
+            padding: 5px;
+        }
+
+        table {
+            font-size: 10px;
+        }
+
+        th, td {
+            padding: 4px; /* Reduced padding for table cells */
+        }
+
+        .logo {
+            width: 200px; /* Smaller logo for a cleaner look */
+            height: auto;
+            margin-bottom: -50px;
+        }
+
+        input[type="text"] {
+            width: 100%; /* Full-width input field */
+            margin-bottom: 5px; /* Add margin below the input field */
+        }
+
+        .button-container, #search-container .flex {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        button, a {
+            width: 100%; /* Full width for buttons */
+            margin-bottom: 5px; /* Space between buttons */
+            padding: 8px 0; /* Adjust padding */
+        }
+
+        #custom-dialog {
+            width: 95%; /* Make the custom dialog wider */
+            padding: 10px; /* Less padding inside the dialog */
+        }
+
+        #suggestions {
+            width: 100%; /* Adjust suggestions box to be full width */
+        }
+
+        /* Adjust custom dialog layout for better readability */
+        #custom-dialog .bg-white {
+            width: auto; /* Allows dialog to fit content */
+            padding: 15px; /* Increase padding for touch targets */
+        }
+    }
     </style>
+    
+    
+    
+    
+
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center light-mode">
 
@@ -159,7 +246,7 @@
 
                 <div class="flex gap-2">
                     <!-- Adjusted Button Size -->
-                    <button onclick="searchData()" style="height: 40px; margin-left: 20px;" 
+                    <button onclick="searchData()" style="height: 40px; margin-left: 2px;" 
                         class="bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 transition duration-300" >Search</button>
                     <button id="download-button" onclick="downloadPDF()"  style="height: 40px; width: 200px;"
                         class="bg-gray-500 text-white px-3 py-1.5 rounded-lg hover:bg-gray-600 transition duration-300">Download PDF</button>
