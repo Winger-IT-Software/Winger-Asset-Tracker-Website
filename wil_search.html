@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WingerIT</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f9f9f9;
+            margin: 0;
+            color: #333;
+        }
+        h1 {
+            font-size: 24px;
+            color: #444;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        #search-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: -60px;
+            margin-bottom: -50px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #5c6978;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #1c1c1c;
+        }
+        #data-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #000000;
+            color: white;
+        }
+        tr:nth-child(even) td {
+            background-color: #f2f2f2;
+        }
+        tr:hover td {
+            background-color: #ddf;
+        }
+        #suggestions {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            width: 300px;
+            z-index: 1000;
+            position: absolute;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .suggestion-item {
+            padding: 10px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        .suggestion-item:hover {
+            background-color: #f0f0f0;
+        }
+        .logo {
+            width: 200px; /* Adjust the width as needed */
+            height: auto;
+            margin-right: 20px; /* Adds space to the right of the logo */
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="search-container">
+        <img src="logo upscaled png format (2).png" alt="Logo" class="logo"/>
+        <input type="text" id="search-wil" placeholder="Search by WIL number" oninput="showSuggestions()">
+        <div id="suggestions"></div>
+        <button onclick="searchData()">Search</button>
+        <button id="download-button" onclick="downloadPDF()">Download PDF</button>
+        <a href="index.html" style="            background-color: #5c6978;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background 0.3s ease;
+        margin-right: 10px;"
+        class="">Search by Company</a>
+    </div>
+    <!-- <div id="data-container"></div> -->
+    <div id="suggestions"></div>
+    <div id="data-container"></div>
+    <!-- Include html2pdf.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+    <script>
+        // URL of the JSON data
+        const url = 'https://winger-asset-tracker-c579f-default-rtdb.firebaseio.com/.json';
+        let globalData = null;
+
+        // Function to fetch JSON data
+        async function fetchData() {
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                globalData = data;
+                return data;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('data-container').innerText = 'Failed to load data.';
+                return null;
+            }
+        }
+
+        // Function to format RAM details (Slot 1 / Slot 2 / Slot 3 / Slot 4)
+        function formatRam(ramData) {
+            const ramSlots = [];
+
+            Object.keys(ramData).forEach(slot => {
+                const slotInfo = ramData[slot];
+                if (slotInfo && slotInfo.Capacity && slotInfo.Capacity !== "No Module Installed") {
+                    ramSlots.push(`${slot}: ${slotInfo.Capacity}`);
+                }
+            });
+
+            return ramSlots.length > 0 ? ramSlots.join(' / ') : '-';
+        }
+
+        // Function to convert JSON to HTML table
+      // Function to convert JSON to HTML table
+// Function to convert JSON to HTML table
+
+
+
+
+
+function jsonToTable(jsonData, section, filter = null) {
+    let table = '<table>';
+    
+    // Create table headers
+    table += '<thead><tr>';
+    table += '<th>Company Name</th>';
+    table += '<th>Asset Number</th>';
+    table += section === 'Records' ? '<th>Date</th>' : '';
+    table += '<th>RAM (Slot 1/Slot 2/Slot 3/Slot 4)</th>'; // Updated header for four slots
+    table += '<th>CPU</th>';
+    table += '<th>ROM</th>';
+    table += '<th>Comments</th>'; // New column for comments
+    table += '</tr></thead><tbody>';
+    
+    // Create table rows
+    Object.keys(jsonData).forEach(companyName => {
+        const companyData = jsonData[companyName];
+
+        // Convert laptop numbers to an array and sort in descending order
+        const sortedLaptopNumbers = Object.keys(companyData).sort((a, b) => b.localeCompare(a, undefined, {numeric: true}));
+
+        sortedLaptopNumbers.forEach(laptopNumber => {
+            const laptopData = companyData[laptopNumber];
+
+            if (filter && laptopNumber.toLowerCase() !== filter.toLowerCase()) {
+                return;
+            }
+
+            if (section === 'Records') {
+                // Sort the dates in descending order
+                const sortedDates = Object.keys(laptopData).sort((a, b) => new Date(b) - new Date(a));
+
+                sortedDates.forEach(date => {
+                    const details = laptopData[date];
+                    
+
+                    let sizeInGB = details.ROM && details.ROM['Device 1'] && details.ROM['Device 1'].Size
+                    ? parseFloat(details.ROM['Device 1'].Size) // Convert the size string to a number
+                    : 0;
+
+                    // Convert GiB to GB if needed (modify this factor based on your specific conversion needs)
+                    sizeInGB *= 1.0737;
+                    sizeInGB = Math.round(sizeInGB);
+                    const sizeInGBz = sizeInGB % 10;
+                    
+                    // Determine if HDD or SSD based on the last digit of size
+                    let storageType = 'SSD'; // Default to SSD
+                    if (sizeInGBz === 0) {
+                        storageType = 'HDD';
+                    }
+
+
+
+                    table += '<tr>';
+                    table += `<td>${companyName}</td>`;
+                    table += `<td>${laptopNumber}</td>`;
+                    table += `<td>${date}</td>`;
+                    table += `<td>${formatRam(details.RAM)}</td>`;
+                    table += `<td>${details.Processor ? details.Processor['Model name'] : '-'}</td>`;
+                    // table += `<td>${details.ROM && details.ROM['Device 1'] ? details.ROM['Device 1'].Size : '-'}</td>`;
+                    table += `<td>${storageType} : ${sizeInGB} GB</td>`; 
+                    table += `<td>${details.Comment || '-'}</td>`;
+                    table += '</tr>';
+                });
+            } else {
+                table += '<tr>';
+                table += `<td>${companyName}</td>`;
+                table += `<td>${laptopNumber}</td>`;
+                table += `<td>${formatRam(laptopData.RAM)}</td>`;
+                table += `<td>${laptopData.Processor ? laptopData.Processor['Model name'] : '-'}</td>`;
+                table += `<td>${laptopData.ROM && laptopData.ROM['Device 1'] ? laptopData.ROM['Device 1'].Size : '-'}</td>`;
+
+                table += `<td>${laptopData.Comment || '-'}</td>`;
+                table += '</tr>';
+            }
+        });
+    });
+    table += '</tbody></table>';
+    return table;
+}
+
+
+
+
+
+        // Function to display JSON data
+        function displayData(data, section, filter = null) {
+            const container = document.getElementById('data-container');
+            container.innerHTML = ''; // Clear previous content
+
+            if (data && typeof data === 'object') {
+                if (data[section]) {
+                    const tableHtml = jsonToTable(data[section], section, filter);
+                    container.innerHTML = tableHtml;
+                } else {
+                    container.innerText = `No ${section} data available.`;
+                }
+            } else {
+                container.innerText = 'No data available or data format is incorrect.';
+            }
+        }
+
+        // Function to handle button clicks
+        async function showData(section) {
+            const data = await fetchData();
+            displayData(data, section);
+        }
+
+        // Function to handle search
+        function searchData() {
+            const searchWil = document.getElementById('search-wil').value;
+
+            if (searchWil) {
+                displayData(globalData, 'Records', searchWil);
+            }
+        }
+
+        // Function to show suggestions based on WIL number
+        function showSuggestions() {
+            const searchWil = document.getElementById('search-wil').value.trim();
+            const suggestionsContainer = document.getElementById('suggestions');
+            suggestionsContainer.innerHTML = ''; // Clear previous suggestions
+            suggestionsContainer.style.display = 'none'; // Hide suggestions by default
+
+            if (searchWil && globalData && globalData.Current) {
+                let suggestions = [];
+
+                Object.keys(globalData.Current).forEach(companyName => {
+                    Object.keys(globalData.Current[companyName]).forEach(laptopNumber => {
+                        if (laptopNumber.toLowerCase().includes(searchWil.toLowerCase())) {
+                            suggestions.push(laptopNumber);
+                        }
+                    });
+                });
+
+                suggestions = [...new Set(suggestions)]; // Remove duplicates
+
+                if (suggestions.length > 0) {
+                    suggestions.forEach(laptopNumber => {
+                        const suggestionItem = document.createElement('div');
+                        suggestionItem.className = 'suggestion-item';
+                        suggestionItem.textContent = laptopNumber;
+                        suggestionItem.onclick = () => {
+                            document.getElementById('search-wil').value = laptopNumber;
+                            suggestionsContainer.innerHTML = ''; // Clear suggestions
+                            suggestionsContainer.style.display = 'none'; // Hide suggestions
+                        };
+                        suggestionsContainer.appendChild(suggestionItem);
+                    });
+
+                    suggestionsContainer.style.display = 'block'; // Show suggestions
+                }
+            }
+        }
+
+        // Function to download table as PDF
+        async function downloadPDF() {
+            const element = document.getElementById('data-container');
+            const searchWil = document.getElementById('search-wil').value;
+
+            // Create a new div element for static content
+            const staticContent = `
+                <div style="font-family: Arial, sans-serif; padding: 20px; font-size: 12px; color: #000;">
+                    <h2 style="text-align: center; font-size: 16px; margin-bottom: 20px;">WINGER IT SOLUTIONS</h2>
+                    <img src="logo upscaled png format (2).png" style="display: block; margin: 0 auto; width: 200px; height: auto;"/>
+                    <p><strong>Billing Address:</strong> xxx Technologies Pvt Ltd, xth floor, x building, xx Manyata Tech Park, Karnataka, 5600x5, India, GSTIN: 29Axxxxx0R1ZB</p>
+                    <p><strong>Shipping Address:</strong> x Technologies Pvt Ltd, xth floor, x building, xx Manyata Tech Park, Bangalore, Karnataka, 5600x5, India</p>
+                    <h3 style="margin-top: 20px; margin-bottom: 10px;">Delivery Challan</h3>
+                    <p>Customer PO No: CONFIRMED BY MAIL DATED 290xx024</p>
+                    <p>Delivery Person Name: xxxxxM</p>
+                    <p>Contact Name: Mr. xxx Dxxxi, Contact Number: +9174xxxxx3707</p>
+                    <p>Date: 30-Aug-2024</p>
+                    <p>DC No: DC/8/24/xxx254</p>
+                    <p style="margin-top: 10px;">E.& O.E Hardware Supplied Without any prxxxoftware. We are not responsxxxATA LOSS on our rxxxts, alsxxxxkup or DATA xxxnot our scope of the job.</p>
+                    <p>Returnable in Good Condition: For Rental</p>
+                    <p>Comments: Power adapter with cable -4 carry case.-4</p>
+                    <h3 style="margin-top: 20px; margin-bottom: 10px;">Annexures</h3>
+                </div>
+            `;
+
+            // Create detailed content for the specific WIL number
+            let detailedContent = '';
+
+            if (searchWil) {
+                Object.keys(globalData.Records).forEach(companyName => {
+                    Object.keys(globalData.Records[companyName]).forEach(laptopNumber => {
+                        if (laptopNumber.toLowerCase() === searchWil.toLowerCase()) {
+                            Object.keys(globalData.Records[companyName][laptopNumber]).forEach(date => {
+                                const details = globalData.Records[companyName][laptopNumber][date];
+                                detailedContent += `
+                                    <div style="margin-top: 20px;">
+                                        <h3>Details for WIL Number: ${searchWil}</h3>
+                                        <p><strong>Company Name:</strong> ${companyName}</p>
+                                        <p><strong>Date:</strong> ${date}</p>
+                                        <p><strong>RAM:</strong> ${formatRam(details.RAM)}</p>
+                                        <p><strong>CPU:</strong> ${details.Processor ? details.Processor['Model name'] : '-'}</p>
+                                        <p><strong>ROM:</strong> ${details.ROM ? details.ROM['Device 2'].Size : '-'}</p>
+                                        <p><strong>Comments:</strong> ${details.Comment || '-'}</p>
+                                    </div>
+                                `;
+                            });
+                        }
+                    });
+                });
+            }
+
+            // Combine static content, data container, and detailed content
+            const combinedHtml = staticContent + element.innerHTML + detailedContent;
+
+            // Create a temporary div to hold the combined HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = combinedHtml;
+            document.body.appendChild(tempDiv);
+
+            const options = {
+                margin: 0.5, // Adjust margin for more content visibility
+                filename: 'data.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            }; 
+
+            // Use html2pdf to generate the PDF from the temporary div
+            html2pdf().from(tempDiv).set(options).save().then(() => {
+                document.body.removeChild(tempDiv); // Clean up
+            }).catch(error => {
+                console.error("Error generating PDF:", error);
+                document.body.removeChild(tempDiv); // Clean up
+            });
+        }
+
+        // Initial data load for "Current" section
+        fetchData().then(() => showData('Current'));
+    </script>
+</body>
+</html>

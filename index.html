@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #ffffff;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.light-mode {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        body.dark-mode {
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+
+        #search-container {
+            margin-bottom: 3px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%; /* Full width */
+            max-width: 1268px;
+            height: 100px;
+        }
+
+        #data-container {
+            margin-top: 20px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            border: 1px solid #000;
+            font-size: 12px;
+        }
+
+        th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+            word-wrap: break-word;
+            color: inherit;
+        }
+
+        th {
+            background-color: #000;
+            color: white;
+        }
+
+        td {
+            background-color: #fff;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover td {
+            background-color: #d9d9d9;
+        }
+
+        body.dark-mode table {
+            background-color: #2d3748;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode th {
+            background-color: #4a5568;
+            color: #e2e8f0;
+        }
+
+        body.dark-mode td {
+            background-color: #2d3748;
+        }
+
+        /* Custom styles for suggestions */
+        #suggestions {
+        
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: none;
+        }
+
+        #suggestions div {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        #suggestions div:hover {
+            background-color: #ddd;
+        }
+
+        /* Custom dialog styles */
+        #custom-dialog {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            z-index: 1001;
+        }
+
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        /* Custom styles for the logo */
+        .logo {
+            width: 200px; /* Adjust the width as needed */
+            height: auto;
+            margin-right: 20px; /* Adds space to the right of the logo */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center light-mode">
+
+    <!-- Header with Logo and Search Container -->
+    <div class="flex items-center justify-center w-full max-w-5xl mb-8">
+        <!-- Search Container with Logo, Input, and Buttons -->
+        <div id="search-container" class="w-full max-w-3xl p-6 bg-white shadow-md rounded-lg">
+            <div class="flex flex-col md:flex-row items-center justify-between mb-4">
+                <img src="logo upscaled png format (2).png" alt="Logo" class="logo"/>
+
+                <input style="width: 300px;" type="text" id="search-company" placeholder="Search by Company Name" onkeyup="showSuggestions(this.value)"
+                    class="w-full md:w-2/3 p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 mb-2 md:mb-0">
+
+                <div class="flex gap-2">
+                    <!-- Adjusted Button Size -->
+                    <button onclick="searchData()" style="height: 40px; margin-left: 20px;" 
+                        class="bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 transition duration-300" >Search</button>
+                    <button id="download-button" onclick="downloadPDF()"  style="height: 40px; width: 200px;"
+                        class="bg-gray-500 text-white px-3 py-1.5 rounded-lg hover:bg-gray-600 transition duration-300">Download PDF</button>
+                    <!-- Dark Mode Toggle Button -->
+
+                    <a href="wil_search.html" style="height: 40px; width: 130px;"
+                        class="bg-gray-500 text-white px-3 py-1.5 rounded-lg hover:bg-gray-600 transition duration-300">Search by WIL </a>
+                    <button onclick="toggleTheme()" style="height: 40px; width: 70px;"
+                        class="bg-gray-500 text-white px-3 py-1.5 rounded-lg hover:bg-gray-600 transition duration-300">Theme</button>
+                    
+                </div>
+            </div>
+            <div id="suggestions" class="mt-2 bg-white shadow-md rounded-md max-h-40 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- Data Container -->
+    <div id="data-container" class="w-full max-w-5xl bg-white shadow-md rounded-lg p-6"></div>
+
+    <!-- Overlay and Custom Dialog -->
+    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center hidden"></div>
+    <div id="custom-dialog" class="fixed inset-0 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-80 text-center">
+            <h2 id="dialog-title" class="text-xl font-semibold text-gray-800 mb-4">Are you sure you want to push data?</h2>
+            <div class="flex justify-center gap-4">
+                <button onclick="submitDialog()"
+                    class="bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 transition duration-300">Submit</button>
+                <button onclick="closeDialog()"
+                    class="bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition duration-300">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+    <script src="company.js"></script>
+    <script>
+        // Function to toggle between light and dark themes
+        function toggleTheme() {
+            const body = document.body;
+            if (body.classList.contains('light-mode')) {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+            } else {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+            }
+        }
+    </script>
+</body>
+</html>
